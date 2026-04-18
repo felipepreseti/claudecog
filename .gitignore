@@ -6,6 +6,7 @@ dist/
 .env.local
 .claudecog/
 .howhow-devsync/
+profile-readme.md
 *.tsbuildinfo
 coverage/
 .idea/

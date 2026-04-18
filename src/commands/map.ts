@@ -7,6 +7,7 @@ import { RepoCache } from "../core/cache.js";
 import { ui, fmtNumber } from "../core/ui.js";
 import { extractJsonBlock } from "../core/json.js";
 import { renderGraphHtml, type GraphData } from "../render/graph.js";
+import { t } from "../i18n/index.js";
 
 export interface MapOptions {
   cwd: string;
@@ -40,22 +41,26 @@ export async function runMap(opts: MapOptions): Promise<void> {
   const client = makeClient(cfg);
   const cache = new RepoCache(opts.cwd);
   await cache.ensure();
+  const s = t();
 
-  console.log(ui.hr("scanning repository"));
-  const scanSpinner = ui.spinner("Reading files…").start();
+  console.log(ui.hr(s.hrScanning));
+  const scanSpinner = ui.spinner(s.msgReadingFiles).start();
   const snap = await scanRepo(opts.cwd);
   const summary = await summarizeRepo(snap);
   scanSpinner.succeed(
-    `Scanned ${ui.accent(fmtNumber(snap.totals.files))} files · ${ui.accent(
-      fmtNumber(snap.totals.loc),
-    )} lines · ${ui.accent(formatBytes(snap.totals.bytes))}`,
+    s.msgScannedSummary(
+      ui.accent(fmtNumber(snap.totals.files)),
+      ui.accent(fmtNumber(snap.totals.loc)),
+      ui.accent(formatBytes(snap.totals.bytes)),
+    ),
   );
 
   printRepoOverview(summary);
 
   const cacheKey = cache.hash(
     JSON.stringify({
-      v: 2,
+      v: 3,
+      lang: cfg.lang,
       files: snap.totals.files,
       loc: snap.totals.loc,
       langs: summary.topLanguages,
@@ -66,22 +71,22 @@ export async function runMap(opts: MapOptions): Promise<void> {
   if (!opts.refresh) {
     const cached = await cache.read<RawMap>("map");
     if (cached && cached.key === cacheKey) {
-      ui.info(`Using cached analysis from ${cached.createdAt.slice(0, 19)}Z (use --refresh to redo).`);
+      ui.info(s.msgCacheHit(cached.createdAt.slice(0, 19) + "Z"));
       raw = cached.payload;
     }
   }
 
   if (!raw) {
-    console.log(ui.hr("asking Claude to model the system"));
-    const askSpinner = ui.spinner(`Thinking with ${client.describe()}…`).start();
+    console.log(ui.hr(s.hrAskingMap));
+    const askSpinner = ui.spinner(s.msgThinkingWith(client.describe())).start();
     try {
       const prompt = buildMapPrompt(summary);
       const text = await client.ask(prompt, { system: SYSTEM, maxTokens: 4096 });
       raw = extractJsonBlock(text) as RawMap;
       await cache.write<RawMap>("map", cacheKey, raw);
-      askSpinner.succeed("Claude returned a system model.");
+      askSpinner.succeed(s.msgClaudeReturned);
     } catch (e) {
-      askSpinner.fail("Claude failed to produce a system model.");
+      askSpinner.fail(s.msgClaudeFailedMap);
       throw e;
     }
   }
@@ -95,35 +100,40 @@ export async function runMap(opts: MapOptions): Promise<void> {
   });
   const outPath = await cache.writeText("map.html", html);
 
-  ui.success("System map ready.");
-  console.log(ui.kv("HTML", outPath));
-  console.log(ui.kv("Modules", String(graph.modules.length)));
-  console.log(ui.kv("Edges", String(graph.relationships.length)));
+  ui.success(s.msgMapReady);
+  console.log(ui.kv(s.kvHtml, outPath));
+  console.log(ui.kv(s.kvModulesCount, String(graph.modules.length)));
+  console.log(ui.kv(s.kvEdgesCount, String(graph.relationships.length)));
 
   if (opts.open) {
     try {
       await open(outPath);
-      console.log(ui.subtle(`\n  Opened in your browser. If it didn't open, paste this URL:`));
+      console.log(ui.subtle(`\n  ${s.msgOpenedInBrowser}`));
       console.log(`  ${ui.link("file://" + outPath)}\n`);
     } catch {
-      console.log(ui.subtle(`\n  Open it manually: ${ui.link("file://" + outPath)}\n`));
+      console.log(ui.subtle(`\n  ${s.msgOpenManually} ${ui.link("file://" + outPath)}\n`));
     }
   } else {
-    console.log(ui.subtle(`\n  Open it manually: ${ui.link("file://" + outPath)}\n`));
+    console.log(ui.subtle(`\n  ${s.msgOpenManually} ${ui.link("file://" + outPath)}\n`));
   }
 }
 
 function buildMapPrompt(s: Awaited<ReturnType<typeof summarizeRepo>>): string {
+  const langInstr = t().promptOutputLang;
   const langs = s.topLanguages
     .map((l) => `- ${l.language}: ${l.files} files, ${l.loc} LOC`)
     .join("\n");
-  const topFiles = s.topFiles.map((f) => `- ${f.relPath} (${f.loc} LOC, ${f.language})`).join("\n");
+  const topFiles = s.topFiles
+    .map((f) => `- ${f.relPath} (${f.loc} LOC, ${f.language})`)
+    .join("\n");
   const entry = s.entrypoints.map((e) => `- ${e}`).join("\n") || "(none detected)";
   const manifests = s.manifests
     .map((m) => `### ${m.relPath}\n\`\`\`\n${m.preview}\n\`\`\``)
     .join("\n\n");
 
-  return `You will receive a high-level snapshot of a software repository. Your job is to model it as a system: identify cohesive logical modules, what each one is for, and how they relate to each other. You are NOT scoring code quality here — only mapping structure.
+  return `You will receive a high-level snapshot of a software repository. Your job is to model it as a system: identify cohesive logical modules, what each one is for, and how they relate to each other. You are NOT scoring code quality here, only mapping structure.
+
+${langInstr}
 
 <repository name="${path.basename(s.root)}">
 <totals>
@@ -155,15 +165,15 @@ ${manifests || "(none)"}
 Respond with JSON inside <json>...</json> matching this schema exactly:
 
 {
-  "summary": string,            // 3-5 sentences. Plain English. Describe what the system IS, what it DOES, and how it is organized. Speak to a smart developer who has never seen this code.
+  "summary": string,
   "modules": [
     {
-      "id": string,             // short kebab-case slug, unique
-      "name": string,           // human-friendly name
+      "id": string,
+      "name": string,
       "layer": "core" | "feature" | "infra" | "ui" | "data" | "test" | "config" | "other",
-      "purpose": string,        // 1-2 sentences
-      "files": string[],        // up to 8 representative file paths from the repo
-      "weight": number          // 1-10, rough importance/centrality
+      "purpose": string,
+      "files": string[],
+      "weight": number
     }
   ],
   "relationships": [
@@ -172,7 +182,11 @@ Respond with JSON inside <json>...</json> matching this schema exactly:
 }
 
 Rules:
-- Aim for 5-12 modules. Group small adjacent things together; don't make a module per file.
+- Aim for 5 to 12 modules. Group small adjacent things together; do not make a module per file.
+- summary is 3 to 5 sentences in plain language. Describe what the system IS, what it DOES, and how it is organized.
+- Each module's purpose is 1 to 2 sentences.
+- Each module includes up to 8 representative file paths from the snapshot above.
+- weight is 1 to 10 (rough importance/centrality).
 - Use ONLY file paths that appear in the snapshot above.
 - Every relationship must reference module ids you defined.
 - Layer "test" only if the module is exclusively tests.
@@ -183,7 +197,10 @@ function normalizeGraph(raw: RawMap): GraphData {
   const summary = (raw.summary ?? "").trim() || "No summary returned.";
   const seen = new Set<string>();
   const modules = (raw.modules ?? []).map((m, i) => {
-    let id = (m.id || m.name || `module-${i}`).toLowerCase().replace(/[^a-z0-9-]+/g, "-").replace(/^-+|-+$/g, "");
+    let id = (m.id || m.name || `module-${i}`)
+      .toLowerCase()
+      .replace(/[^a-z0-9-]+/g, "-")
+      .replace(/^-+|-+$/g, "");
     if (!id) id = `module-${i}`;
     let unique = id;
     let n = 2;
@@ -224,34 +241,36 @@ function formatBytes(b: number): string {
 function printRepoOverview(
   s: Awaited<ReturnType<typeof summarizeRepo>>,
 ): void {
+  const tx = t();
   const langs = s.topLanguages
     .slice(0, 5)
     .map(
       (l) =>
-        `${ui.c.white(l.language.padEnd(12))} ${ui.subtle(`${l.files} files`)} ${ui.subtle(
-          `${l.loc} LOC`,
+        `${ui.c.white(l.language.padEnd(12))} ${ui.subtle(`${l.files} ${tx.filesUnit}`)} ${ui.subtle(
+          `${l.loc} ${tx.locUnit}`,
         )}`,
     )
     .join("\n");
   console.log(
     ui.box(
       [
-        `${ui.c.bold("Repository")}  ${path.basename(s.root)}`,
-        `${ui.c.bold("Path")}        ${ui.subtle(s.root)}`,
+        `${ui.c.bold(tx.boxRepo)}  ${path.basename(s.root)}`,
+        `${ui.c.bold(tx.boxPath)}  ${ui.subtle(s.root)}`,
         ``,
-        ui.c.bold("Top languages"),
+        ui.c.bold(tx.boxTopLanguages),
         langs || ui.subtle("(none)"),
       ].join("\n"),
-      { title: "snapshot", color: "cyan" },
+      { title: tx.boxSnapshotTitle, color: "cyan" },
     ),
   );
 }
 
 function printSystemSummary(g: GraphData): void {
-  console.log(ui.hr("system summary"));
-  console.log(ui.box(g.summary, { title: "what this system is", color: "magenta" }));
+  const tx = t();
+  console.log(ui.hr(tx.hrSystemSummary));
+  console.log(ui.box(g.summary, { title: tx.boxWhatThisIs, color: "magenta" }));
   if (g.modules.length === 0) return;
-  console.log(ui.hr("modules"));
+  console.log(ui.hr(tx.hrModules));
   for (const m of g.modules) {
     const layerColor =
       m.layer === "core"

@@ -7,6 +7,7 @@ import { readFileSafe, scanRepo, summarizeRepo } from "../core/scanner.js";
 import { ui } from "../core/ui.js";
 import { renderMarkdown } from "../render/markdown.js";
 import { RepoCache } from "../core/cache.js";
+import { t } from "../i18n/index.js";
 
 export interface ExplainOptions {
   cwd: string;
@@ -22,13 +23,14 @@ export async function runExplain(opts: ExplainOptions): Promise<void> {
   const cfg = await ensureConfig();
   const client = makeClient(cfg);
   const cache = new RepoCache(opts.cwd);
+  const s = t();
 
   let target = opts.file;
   if (!target) {
     target = await pickFileInteractively(opts.cwd);
   }
   if (!target) {
-    ui.fail("No file selected.");
+    ui.fail(s.msgNoFileSelected);
     return;
   }
 
@@ -37,31 +39,29 @@ export async function runExplain(opts: ExplainOptions): Promise<void> {
   try {
     stat = await fs.stat(absPath);
   } catch {
-    ui.fail(`File not found: ${target}`);
+    ui.fail(s.msgFileNotFound(target));
     return;
   }
   if (!stat.isFile()) {
-    ui.fail(`Not a file: ${target}`);
+    ui.fail(s.msgNotAFile(target));
     return;
   }
 
   const relPath = path.relative(opts.cwd, absPath);
-  console.log(ui.hr(`explain  ${relPath}`));
+  console.log(ui.hr(s.hrExplain(relPath)));
 
-  const readSpinner = ui.spinner("Reading file…").start();
+  const readSpinner = ui.spinner(s.msgReadingFile).start();
   const code = await readFileSafe(absPath);
-  readSpinner.succeed(
-    `Read ${ui.accent(relPath)} (${ui.subtle(`${code.split("\n").length} lines`)})`,
-  );
+  readSpinner.succeed(s.msgReadOk(ui.accent(relPath), String(code.split("\n").length)));
 
-  const askSpinner = ui.spinner(`Explaining with ${client.describe()}…`).start();
+  const askSpinner = ui.spinner(s.msgExplainingWith(client.describe())).start();
   let answer: string;
   try {
     const prompt = buildExplainPrompt(relPath, code);
     answer = await client.ask(prompt, { system: SYSTEM, maxTokens: 4096 });
-    askSpinner.succeed("Got the explanation.");
+    askSpinner.succeed(s.msgGotExplanation);
   } catch (e) {
-    askSpinner.fail("Claude failed to explain the file.");
+    askSpinner.fail(s.msgClaudeFailedExplain);
     throw e;
   }
 
@@ -71,21 +71,24 @@ export async function runExplain(opts: ExplainOptions): Promise<void> {
   if (opts.save) {
     const safe = relPath.replace(/[\\/]/g, "__");
     const out = await cache.writeText(`explain__${safe}.md`, answer);
-    console.log(ui.subtle(`\n  Saved to: ${out}\n`));
+    console.log(ui.subtle(`\n  ${s.msgSavedTo(out)}\n`));
   }
 }
 
 function buildExplainPrompt(relPath: string, code: string): string {
   const ext = path.extname(relPath).slice(1) || "text";
+  const langInstr = t().promptExplainLang;
   return `I will give you a single file from a larger codebase. Walk a smart developer through it as if you were pairing with them for ten minutes.
+
+${langInstr}
 
 Format your answer in Markdown with these sections, in this order:
 
 ## What this file is for
-One paragraph. Plain English. What problem does it solve in the system?
+One paragraph. Plain language. What problem does it solve in the system?
 
 ## Mental model
-Bullet list of the 3-6 key abstractions/objects/flows the reader should hold in their head before reading the code.
+Bullet list of the 3 to 6 key abstractions/objects/flows the reader should hold in their head before reading the code.
 
 ## Walkthrough
 Go through the file in narrative order, quoting only the smallest snippets needed (use fenced code blocks). Skip boring parts. Focus on intent, not syntax.
@@ -94,12 +97,12 @@ Go through the file in narrative order, quoting only the smallest snippets neede
 Things that would NOT be obvious from a quick read. Implicit contracts, hidden coupling, subtle bugs, performance traps, ordering requirements, etc.
 
 ## How I would change it
-Two or three concrete improvements you'd suggest if you were reviewing this in a PR. Be opinionated. No "consider adding tests" platitudes.
+Two or three concrete improvements you would suggest if you were reviewing this in a PR. Be opinionated. No "consider adding tests" platitudes.
 
 Constraints:
-- Be concise. Aim for ~400-600 words total.
+- Be concise. Aim for about 400 to 600 words total.
 - Don't restate the code; illuminate it.
-- If something is well-written, say so briefly and move on.
+- If something is well written, say so briefly and move on.
 
 <file path="${relPath}" language="${ext}">
 ${code}
@@ -107,24 +110,25 @@ ${code}
 }
 
 async function pickFileInteractively(cwd: string): Promise<string | undefined> {
-  const spinner = ui.spinner("No file given — finding the most interesting ones…").start();
+  const s = t();
+  const spinner = ui.spinner(s.msgNoFileGiven).start();
   const snap = await scanRepo(cwd);
   const summary = await summarizeRepo(snap);
   spinner.stop();
 
   const choices = summary.topFiles.slice(0, 12).map((f) => ({
     title: f.relPath,
-    description: `${f.language} · ${f.loc} LOC`,
+    description: `${f.language} · ${f.loc} ${s.locUnit}`,
     value: f.relPath,
   }));
   if (choices.length === 0) {
-    ui.fail("No source files found in this directory.");
+    ui.fail(s.msgNoSources);
     return undefined;
   }
   const { picked } = await prompts({
     type: "select",
     name: "picked",
-    message: "Pick a file to explain",
+    message: s.msgPickFile,
     choices,
     initial: 0,
   });

@@ -1,6 +1,7 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import os from "node:os";
+import type { Lang } from "../i18n/index.js";
 
 export type ClaudeBackend = "anthropic-api" | "claude-code-cli";
 
@@ -9,6 +10,7 @@ export interface ClaudeCogConfig {
   apiKey?: string;
   model: string;
   maxTokens: number;
+  lang: Lang;
   createdAt: string;
 }
 
@@ -21,7 +23,16 @@ export const DEFAULT_MAX_TOKENS = 4096;
 export async function loadConfig(): Promise<ClaudeCogConfig | null> {
   try {
     const raw = await fs.readFile(CONFIG_PATH, "utf-8");
-    return JSON.parse(raw) as ClaudeCogConfig;
+    const parsed = JSON.parse(raw) as Partial<ClaudeCogConfig>;
+    if (!parsed.backend || !parsed.model) return null;
+    return {
+      backend: parsed.backend,
+      apiKey: parsed.apiKey,
+      model: parsed.model,
+      maxTokens: parsed.maxTokens ?? DEFAULT_MAX_TOKENS,
+      lang: (parsed.lang as Lang) ?? "en",
+      createdAt: parsed.createdAt ?? new Date().toISOString(),
+    };
   } catch {
     return null;
   }

@@ -2,6 +2,7 @@ import chalk from "chalk";
 import boxen from "boxen";
 import gradient from "gradient-string";
 import ora, { type Ora } from "ora";
+import { t } from "../i18n/index.js";
 
 const cogGradient = gradient(["#FF6B35", "#F7B801", "#7B68EE"]);
 const subtle = chalk.hex("#888888");
@@ -25,8 +26,9 @@ export const ui = {
       "                                           /____/   ",
     ].join("\n");
 
+    const s = t();
     const subtitle = subtle(
-      `  v${version}  ·  a cognitive layer for code  ·  powered by Claude`,
+      `  v${version}  ·  ${s.brandTagline}  ·  ${s.poweredBy}`,
     );
     return `\n${cogGradient.multiline(art)}\n${subtitle}\n`;
   },

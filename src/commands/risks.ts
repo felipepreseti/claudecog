@@ -5,6 +5,7 @@ import { readFileSafe, scanRepo, summarizeRepo } from "../core/scanner.js";
 import { RepoCache } from "../core/cache.js";
 import { ui, severityChip } from "../core/ui.js";
 import { extractJsonBlock } from "../core/json.js";
+import { t } from "../i18n/index.js";
 
 export interface RisksOptions {
   cwd: string;
@@ -41,15 +42,18 @@ export async function runRisks(opts: RisksOptions): Promise<void> {
   const client = makeClient(cfg);
   const cache = new RepoCache(opts.cwd);
   await cache.ensure();
+  const s = t();
 
-  console.log(ui.hr("scanning repository"));
-  const scanSpinner = ui.spinner("Reading files…").start();
+  console.log(ui.hr(s.hrScanning));
+  const scanSpinner = ui.spinner(s.msgReadingFiles).start();
   const snap = await scanRepo(opts.cwd);
   const summary = await summarizeRepo(snap);
   scanSpinner.succeed(
-    `Scanned ${ui.accent(String(snap.totals.files))} files · ${ui.accent(
-      String(snap.totals.loc),
-    )} LOC`,
+    s.msgScannedSummary(
+      ui.accent(String(snap.totals.files)),
+      ui.accent(String(snap.totals.loc)),
+      "",
+    ),
   );
 
   const samplePaths = summary.topFiles.slice(0, 6).map((f) => f.relPath);
@@ -66,11 +70,12 @@ export async function runRisks(opts: RisksOptions): Promise<void> {
 
   const cacheKey = cache.hash(
     JSON.stringify({
-      v: 2,
+      v: 3,
+      lang: cfg.lang,
       files: snap.totals.files,
       loc: snap.totals.loc,
       tree: summary.tree,
-      samples: samples.map((s) => `${s.relPath}:${s.content.length}`),
+      samples: samples.map((x) => `${x.relPath}:${x.content.length}`),
     }),
   );
 
@@ -78,22 +83,22 @@ export async function runRisks(opts: RisksOptions): Promise<void> {
   if (!opts.refresh) {
     const cached = await cache.read<RawRisks>("risks");
     if (cached && cached.key === cacheKey) {
-      ui.info(`Using cached risk report from ${cached.createdAt.slice(0, 19)}Z (use --refresh to redo).`);
+      ui.info(s.msgRiskCacheHit(cached.createdAt.slice(0, 19) + "Z"));
       raw = cached.payload;
     }
   }
 
   if (!raw) {
-    console.log(ui.hr("asking Claude to find real risks"));
-    const askSpinner = ui.spinner(`Reviewing with ${client.describe()}…`).start();
+    console.log(ui.hr(s.hrAskingRisks));
+    const askSpinner = ui.spinner(s.msgReviewingWith(client.describe())).start();
     try {
       const prompt = buildRisksPrompt(summary, samples);
       const text = await client.ask(prompt, { system: SYSTEM, maxTokens: 4096 });
       raw = extractJsonBlock(text) as RawRisks;
       await cache.write<RawRisks>("risks", cacheKey, raw);
-      askSpinner.succeed("Risk report ready.");
+      askSpinner.succeed(s.msgRiskReportReady);
     } catch (e) {
-      askSpinner.fail("Claude failed to produce a risk report.");
+      askSpinner.fail(s.msgClaudeFailedRisks);
       throw e;
     }
   }
@@ -110,13 +115,14 @@ export async function runRisks(opts: RisksOptions): Promise<void> {
     "risks.json",
     JSON.stringify({ generatedAt: new Date().toISOString(), risks }, null, 2),
   );
-  console.log(ui.subtle(`\n  Saved JSON: ${out}\n`));
+  console.log(ui.subtle(`\n  ${s.msgSavedJson(out)}\n`));
 }
 
 function buildRisksPrompt(
   s: Awaited<ReturnType<typeof summarizeRepo>>,
   samples: Array<{ relPath: string; content: string }>,
 ): string {
+  const langInstr = t().promptOutputLang;
   const langs = s.topLanguages
     .map((l) => `- ${l.language}: ${l.files} files, ${l.loc} LOC`)
     .join("\n");
@@ -124,22 +130,21 @@ function buildRisksPrompt(
     .map((m) => `### ${m.relPath}\n\`\`\`\n${m.preview}\n\`\`\``)
     .join("\n\n");
   const sampleBlocks = samples
-    .map(
-      (s) =>
-        `<sample path="${s.relPath}">\n${s.content}\n</sample>`,
-    )
+    .map((x) => `<sample path="${x.relPath}">\n${x.content}\n</sample>`)
     .join("\n\n");
 
   return `Review this repository as a senior engineer. Find the REAL risks. Skip lint-level nits.
 
+${langInstr}
+
 Look for:
-- security & secrets exposure
+- security and secrets exposure
 - production reliability hazards (error handling, retries, blocking I/O on hot paths)
-- data integrity / consistency issues
+- data integrity and consistency issues
 - silent coupling that will hurt future refactors
 - onboarding pain (missing docs, undocumented assumptions, magic constants)
 - dependency risks (abandoned, vulnerable, mis-pinned)
-- testing blind spots (NOT "you should add tests" — say WHERE the lack of tests will bite)
+- testing blind spots (NOT "you should add tests": say WHERE the lack of tests will bite)
 - performance traps that will appear under load
 - architectural debt that will compound
 
@@ -168,20 +173,24 @@ Respond with JSON inside <json>...</json>:
 {
   "risks": [
     {
-      "title": string,                     // 6-10 words, concrete
+      "title": string,
       "severity": "low" | "medium" | "high" | "critical",
       "category": "security" | "reliability" | "data" | "coupling" | "onboarding" | "dependencies" | "testing" | "performance" | "architecture",
-      "file": string,                       // best-guess path (use one from the snapshot, or "" if cross-cutting)
-      "why_it_matters": string,             // 1-3 sentences. Be specific. No platitudes.
-      "suggested_fix": string               // 1-3 sentences. Concrete next step.
+      "file": string,
+      "why_it_matters": string,
+      "suggested_fix": string
     }
   ]
 }
 
 Rules:
-- Return 5-12 risks. Quality > quantity.
+- Return 5 to 12 risks. Quality over quantity.
+- title is 6 to 10 words, concrete.
+- file is a best-guess path (use one from the snapshot, or "" if cross-cutting).
+- why_it_matters is 1 to 3 sentences. Be specific. No platitudes.
+- suggested_fix is 1 to 3 sentences. Concrete next step.
 - No filler. No "consider adding more comments."
-- Order matters: list highest-severity first.`;
+- Order matters: list highest severity first.`;
 }
 
 function normalizeRisks(raw: RawRisks): Risk[] {
@@ -206,17 +215,20 @@ function sevWeight(s: Risk["severity"]): number {
 }
 
 function printRisks(risks: Risk[]): void {
-  console.log(ui.hr("risks (highest first)"));
+  const tx = t();
+  console.log(ui.hr(tx.hrRisks));
   if (risks.length === 0) {
-    console.log(ui.box("No risks identified.", { color: "green" }));
+    console.log(ui.box(tx.msgNoRisks, { color: "green" }));
     return;
   }
   for (let i = 0; i < risks.length; i++) {
     const r = risks[i]!;
     const header = `${severityChip(r.severity)} ${ui.c.bold.white(r.title)}  ${ui.subtle(`[${r.category}]`)}`;
-    const fileLine = r.file ? ui.kv("file", r.file) : ui.kv("file", "(cross-cutting)");
-    const why = `${ui.c.bold("why")}      ${wrap(r.whyItMatters)}`;
-    const fix = `${ui.c.bold("fix")}      ${wrap(r.suggestedFix)}`;
+    const fileLine = r.file
+      ? ui.kv(tx.riskFile, r.file)
+      : ui.kv(tx.riskFile, tx.riskFileCrossCutting);
+    const why = `${ui.c.bold(tx.riskWhy.padEnd(8))} ${wrap(r.whyItMatters)}`;
+    const fix = `${ui.c.bold(tx.riskFix.padEnd(8))} ${wrap(r.suggestedFix)}`;
     console.log(
       ui.box([header, "", fileLine, "", why, "", fix].join("\n"), {
         title: `${i + 1}/${risks.length}`,
@@ -232,7 +244,7 @@ function printRisks(risks: Risk[]): void {
 }
 
 function wrap(text: string, width = 80): string {
-  if (!text) return ui.subtle("(no detail)");
+  if (!text) return ui.subtle(t().riskNoDetail);
   const words = text.split(/\s+/);
   const lines: string[] = [];
   let line = "";
@@ -245,7 +257,5 @@ function wrap(text: string, width = 80): string {
     }
   }
   if (line) lines.push(line);
-  return lines
-    .map((l, i) => (i === 0 ? l : "         " + l))
-    .join("\n");
+  return lines.map((l, i) => (i === 0 ? l : "         " + l)).join("\n");
 }

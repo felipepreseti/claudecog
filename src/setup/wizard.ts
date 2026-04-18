@@ -10,6 +10,13 @@ import {
 } from "../core/config.js";
 import { detectClaudeCodeCli } from "../core/claude.js";
 import { ui } from "../core/ui.js";
+import {
+  type Lang,
+  getLang,
+  listLangs,
+  setLang,
+  t,
+} from "../i18n/index.js";
 
 export interface EnsureConfigOptions {
   force?: boolean;
@@ -26,15 +33,35 @@ export async function ensureConfig(
 }
 
 export async function runWizard(): Promise<ClaudeCogConfig> {
+  let s = t();
+
+  const langChoices = listLangs().map((l) => ({
+    title: l.name,
+    value: l.code,
+  }));
+  const langInitial = langChoices.findIndex((c) => c.value === getLang());
+  const { chosenLang } = await prompts(
+    {
+      type: "select",
+      name: "chosenLang",
+      message: s.wizardLangPrompt,
+      choices: langChoices,
+      initial: langInitial >= 0 ? langInitial : 0,
+    },
+    { onCancel: cancel },
+  );
+  setLang(chosenLang as Lang);
+  s = t();
+
   console.log(
     ui.box(
       [
-        `${ui.brandTag()} needs to talk to Claude on your behalf.`,
+        `${ui.brandTag()} ${s.wizardIntro1}`,
         ``,
-        `${ui.subtle("This wizard takes ~30 seconds. Your settings will be saved to:")}`,
+        `${ui.subtle(s.wizardIntro2)}`,
         `  ${ui.subtle(configPath())}`,
       ].join("\n"),
-      { title: "First-time setup", color: "magenta" },
+      { title: s.wizardTitle, color: "magenta" },
     ),
   );
 
@@ -45,16 +72,14 @@ export async function runWizard(): Promise<ClaudeCogConfig> {
 
   if (hasClaudeCode) {
     choices.push({
-      title: "Use Claude Code (recommended — no extra cost)",
-      description: "Detected `claude` CLI on your system. Uses your existing subscription.",
+      title: s.wizardChoiceClaudeCode,
+      description: s.wizardChoiceClaudeCodeDesc,
       value: "claude-code-cli",
     });
   }
   choices.push({
-    title: envKey
-      ? "Use Anthropic API key (detected ANTHROPIC_API_KEY in your environment)"
-      : "Use Anthropic API key (paste it now)",
-    description: "Direct API access. Pay-per-use. Get a key at console.anthropic.com.",
+    title: envKey ? s.wizardChoiceApiKeyDetected : s.wizardChoiceApiKey,
+    description: s.wizardChoiceApiKeyDesc,
     value: "anthropic-api",
   });
 
@@ -62,7 +87,7 @@ export async function runWizard(): Promise<ClaudeCogConfig> {
     {
       type: "select",
       name: "backend",
-      message: "How should ClaudeCog talk to Claude?",
+      message: s.wizardBackendPrompt,
       choices,
       initial: 0,
     },
@@ -76,7 +101,7 @@ export async function runWizard(): Promise<ClaudeCogConfig> {
         {
           type: "confirm",
           name: "useEnv",
-          message: "Use the ANTHROPIC_API_KEY from your environment?",
+          message: s.wizardUseEnvKey,
           initial: true,
         },
         { onCancel: cancel },
@@ -90,9 +115,9 @@ export async function runWizard(): Promise<ClaudeCogConfig> {
         {
           type: "password",
           name: "key",
-          message: "Paste your Anthropic API key (starts with sk-ant-...)",
+          message: s.wizardPasteKey,
           validate: (v: string) =>
-            v.startsWith("sk-ant-") ? true : "That doesn't look like an Anthropic key.",
+            v.startsWith("sk-ant-") ? true : s.wizardKeyInvalid,
         },
         { onCancel: cancel },
       );
@@ -105,25 +130,27 @@ export async function runWizard(): Promise<ClaudeCogConfig> {
     apiKey: backend === "anthropic-api" && apiKey !== envKey ? apiKey : undefined,
     model: DEFAULT_MODEL,
     maxTokens: DEFAULT_MAX_TOKENS,
+    lang: chosenLang as Lang,
     createdAt: new Date().toISOString(),
   };
 
   await saveConfig(cfg);
 
-  ui.success("ClaudeCog is ready.");
+  ui.success(s.wizardReady);
   console.log(
     ui.box(
       [
-        `Backend  ${ui.accent(cfg.backend)}`,
-        `Model    ${ui.accent(cfg.model)}`,
-        `Config   ${ui.subtle(configPath())}`,
+        `${s.kvBackend.padEnd(8)}  ${ui.accent(cfg.backend)}`,
+        `${s.kvModel.padEnd(8)}  ${ui.accent(cfg.model)}`,
+        `${s.kvLanguage.padEnd(8)}  ${ui.accent(cfg.lang)}`,
+        `${s.kvPath.padEnd(8)}  ${ui.subtle(configPath())}`,
         ``,
-        `${ui.subtle("Try one of these to get started:")}`,
-        `  ${ui.cmd("claudecog map")}            ${ui.subtle("# system overview + interactive graph")}`,
-        `  ${ui.cmd("claudecog explain <file>")}  ${ui.subtle("# senior-engineer walkthrough")}`,
-        `  ${ui.cmd("claudecog risks")}           ${ui.subtle("# prioritized risk report")}`,
+        `${ui.subtle(s.wizardTryThese)}`,
+        `  ${ui.cmd("claudecog map")}            ${ui.subtle(s.wizardHintMap)}`,
+        `  ${ui.cmd("claudecog explain <file>")}  ${ui.subtle(s.wizardHintExplain)}`,
+        `  ${ui.cmd("claudecog risks")}           ${ui.subtle(s.wizardHintRisks)}`,
       ].join("\n"),
-      { title: "You're set", color: "green" },
+      { title: s.wizardYoureSet, color: "green" },
     ),
   );
 
@@ -131,6 +158,7 @@ export async function runWizard(): Promise<ClaudeCogConfig> {
 }
 
 function cancel(): void {
-  ui.fail("Setup cancelled.", "Run `claudecog setup` whenever you're ready.");
+  const s = t();
+  ui.fail(s.wizardCancelled, s.wizardCancelledHint);
   process.exit(1);
 }
