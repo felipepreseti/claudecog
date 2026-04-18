@@ -1,0 +1,448 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>__TITLE__ · ClaudeCog</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+      :root {
+        --bg: #0b0b10;
+        --panel: #14141c;
+        --panel-2: #1c1c27;
+        --border: #2a2a3a;
+        --text: #e8e8f0;
+        --muted: #8a8aa0;
+        --accent: #ff6b35;
+        --brand: #7b68ee;
+        --ok: #10b981;
+        --warn: #f59e0b;
+        --bad: #ef4444;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        background: radial-gradient(
+            1200px 600px at 80% -10%,
+            rgba(123, 104, 238, 0.15),
+            transparent 60%
+          ),
+          radial-gradient(
+            900px 500px at -10% 110%,
+            rgba(255, 107, 53, 0.12),
+            transparent 60%
+          ),
+          var(--bg);
+        color: var(--text);
+        font-family:
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          "Segoe UI",
+          Roboto,
+          "Helvetica Neue",
+          Arial,
+          sans-serif;
+        height: 100%;
+        overflow: hidden;
+      }
+      header {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        padding: 14px 20px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        z-index: 5;
+        background: linear-gradient(180deg, rgba(11, 11, 16, 0.85), transparent);
+        backdrop-filter: blur(8px);
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-weight: 700;
+        letter-spacing: 0.3px;
+      }
+      .brand .dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--accent), var(--brand));
+        box-shadow: 0 0 16px rgba(123, 104, 238, 0.7);
+      }
+      .meta {
+        color: var(--muted);
+        font-size: 12px;
+        text-align: right;
+      }
+      .meta b {
+        color: var(--text);
+      }
+      #graph {
+        width: 100vw;
+        height: 100vh;
+        display: block;
+      }
+      .panel {
+        position: fixed;
+        top: 70px;
+        right: 16px;
+        width: 360px;
+        max-height: calc(100vh - 100px);
+        overflow: auto;
+        background: rgba(20, 20, 28, 0.92);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 16px 18px;
+        z-index: 4;
+        backdrop-filter: blur(10px);
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+      }
+      .panel h2 {
+        margin: 0 0 6px;
+        font-size: 14px;
+        letter-spacing: 0.4px;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      .panel h3 {
+        margin: 14px 0 4px;
+        font-size: 16px;
+      }
+      .panel p,
+      .panel li {
+        font-size: 13px;
+        line-height: 1.55;
+        color: var(--text);
+      }
+      .panel .summary {
+        font-size: 13px;
+        color: var(--text);
+        line-height: 1.6;
+        white-space: pre-wrap;
+      }
+      .legend {
+        position: fixed;
+        bottom: 16px;
+        left: 16px;
+        background: rgba(20, 20, 28, 0.9);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 10px 14px;
+        font-size: 12px;
+        color: var(--muted);
+        z-index: 4;
+      }
+      .legend .row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 4px 0;
+      }
+      .legend .swatch {
+        width: 10px;
+        height: 10px;
+        border-radius: 2px;
+      }
+      .footer {
+        position: fixed;
+        bottom: 16px;
+        right: 16px;
+        font-size: 11px;
+        color: var(--muted);
+        z-index: 4;
+      }
+      .pill {
+        display: inline-block;
+        padding: 2px 8px;
+        font-size: 11px;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        color: var(--muted);
+        margin-right: 6px;
+      }
+      .node-label {
+        font-size: 12px;
+        fill: var(--text);
+        pointer-events: none;
+        font-weight: 600;
+      }
+      .node-circle {
+        cursor: pointer;
+        stroke: rgba(255, 255, 255, 0.18);
+        stroke-width: 1.5;
+        transition:
+          stroke 0.15s ease,
+          stroke-width 0.15s ease;
+      }
+      .node-circle:hover,
+      .node-circle.selected {
+        stroke: #fff;
+        stroke-width: 2.5;
+      }
+      .link {
+        stroke: rgba(255, 255, 255, 0.18);
+        stroke-opacity: 0.6;
+      }
+      .link.dim {
+        stroke-opacity: 0.06;
+      }
+      .link.highlight {
+        stroke: var(--accent);
+        stroke-opacity: 0.95;
+      }
+      a {
+        color: var(--accent);
+      }
+      ::selection {
+        background: rgba(255, 107, 53, 0.4);
+      }
+      .tag {
+        display: inline-block;
+        font-size: 10px;
+        padding: 1px 6px;
+        border-radius: 4px;
+        background: var(--panel-2);
+        border: 1px solid var(--border);
+        color: var(--muted);
+        margin-right: 4px;
+      }
+      .empty {
+        color: var(--muted);
+        font-style: italic;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="brand">
+        <span class="dot"></span>
+        <span>ClaudeCog</span>
+        <span class="pill">map</span>
+      </div>
+      <div class="meta">
+        <div><b>__REPO_NAME__</b></div>
+        <div>__GENERATED_AT__</div>
+      </div>
+    </header>
+
+    <svg id="graph"></svg>
+
+    <aside class="panel" id="panel">
+      <h2>System summary</h2>
+      <div class="summary" id="summary">__SUMMARY__</div>
+      <h2 style="margin-top: 18px">Modules</h2>
+      <div id="modules"></div>
+    </aside>
+
+    <div class="legend">
+      <div style="color: var(--text); font-weight: 600; margin-bottom: 6px">
+        Layer
+      </div>
+      <div class="row"><span class="swatch" style="background: #7b68ee"></span> core</div>
+      <div class="row"><span class="swatch" style="background: #ff6b35"></span> feature</div>
+      <div class="row"><span class="swatch" style="background: #10b981"></span> infra</div>
+      <div class="row"><span class="swatch" style="background: #f59e0b"></span> ui</div>
+      <div class="row"><span class="swatch" style="background: #94a3b8"></span> other</div>
+    </div>
+
+    <div class="footer">Generated by ClaudeCog · click a module to focus</div>
+
+    <script>
+      const DATA = __DATA__;
+
+      const layerColor = {
+        core: "#7b68ee",
+        feature: "#ff6b35",
+        infra: "#10b981",
+        ui: "#f59e0b",
+        data: "#22d3ee",
+        test: "#a78bfa",
+        config: "#94a3b8",
+        other: "#94a3b8",
+      };
+
+      const modules = (DATA.modules || []).map((m, i) => ({
+        ...m,
+        id: m.id || `m${i}`,
+        layer: (m.layer || "other").toLowerCase(),
+      }));
+      const links = (DATA.relationships || [])
+        .map((r) => ({
+          source: r.source,
+          target: r.target,
+          kind: r.kind || "depends_on",
+        }))
+        .filter(
+          (r) =>
+            modules.find((m) => m.id === r.source) &&
+            modules.find((m) => m.id === r.target),
+        );
+
+      const svg = d3.select("#graph");
+      const width = window.innerWidth;
+      const height = window.innerHeight;
+
+      const g = svg.append("g");
+      svg.call(
+        d3
+          .zoom()
+          .scaleExtent([0.2, 3])
+          .on("zoom", (e) => g.attr("transform", e.transform)),
+      );
+
+      const linkSel = g
+        .append("g")
+        .selectAll("line")
+        .data(links)
+        .join("line")
+        .attr("class", "link")
+        .attr("stroke-width", 1.2);
+
+      const nodeG = g
+        .append("g")
+        .selectAll("g")
+        .data(modules)
+        .join("g")
+        .call(
+          d3
+            .drag()
+            .on("start", (e, d) => {
+              if (!e.active) sim.alphaTarget(0.3).restart();
+              d.fx = d.x;
+              d.fy = d.y;
+            })
+            .on("drag", (e, d) => {
+              d.fx = e.x;
+              d.fy = e.y;
+            })
+            .on("end", (e, d) => {
+              if (!e.active) sim.alphaTarget(0);
+              d.fx = null;
+              d.fy = null;
+            }),
+        )
+        .on("click", (_, d) => focusNode(d));
+
+      const radius = (d) => 14 + Math.sqrt(Math.max(d.weight || 1, 1)) * 4;
+
+      nodeG
+        .append("circle")
+        .attr("class", "node-circle")
+        .attr("r", radius)
+        .attr("fill", (d) => layerColor[d.layer] || layerColor.other);
+
+      nodeG
+        .append("text")
+        .attr("class", "node-label")
+        .attr("text-anchor", "middle")
+        .attr("dy", (d) => -radius(d) - 6)
+        .text((d) => d.name);
+
+      const sim = d3
+        .forceSimulation(modules)
+        .force(
+          "link",
+          d3
+            .forceLink(links)
+            .id((d) => d.id)
+            .distance(120)
+            .strength(0.6),
+        )
+        .force("charge", d3.forceManyBody().strength(-280))
+        .force("center", d3.forceCenter(width / 2, height / 2))
+        .force(
+          "collide",
+          d3.forceCollide().radius((d) => radius(d) + 12),
+        )
+        .on("tick", () => {
+          linkSel
+            .attr("x1", (d) => d.source.x)
+            .attr("y1", (d) => d.source.y)
+            .attr("x2", (d) => d.target.x)
+            .attr("y2", (d) => d.target.y);
+          nodeG.attr("transform", (d) => `translate(${d.x},${d.y})`);
+        });
+
+      function focusNode(node) {
+        d3.selectAll(".node-circle").classed("selected", (d) => d.id === node.id);
+        linkSel
+          .classed("highlight", (l) => l.source.id === node.id || l.target.id === node.id)
+          .classed("dim", (l) => l.source.id !== node.id && l.target.id !== node.id);
+        showModuleDetails(node);
+      }
+
+      const modulesEl = document.getElementById("modules");
+      function renderModuleList() {
+        if (!modules.length) {
+          modulesEl.innerHTML = '<div class="empty">No modules detected.</div>';
+          return;
+        }
+        modulesEl.innerHTML = modules
+          .map(
+            (m) => `
+            <div style="margin: 10px 0; padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; cursor: pointer;" data-id="${m.id}">
+              <div style="display:flex;align-items:center;gap:8px;">
+                <span style="width:8px;height:8px;border-radius:50%;background:${layerColor[m.layer] || layerColor.other};"></span>
+                <strong>${escapeHtml(m.name)}</strong>
+                <span class="tag">${escapeHtml(m.layer)}</span>
+              </div>
+              <div style="color: var(--muted); font-size: 12px; margin-top: 6px;">${escapeHtml(m.purpose || "")}</div>
+            </div>`,
+          )
+          .join("");
+        modulesEl.querySelectorAll("[data-id]").forEach((el) => {
+          el.addEventListener("click", () => {
+            const m = modules.find((x) => x.id === el.dataset.id);
+            if (m) focusNode(m);
+          });
+        });
+      }
+
+      function showModuleDetails(m) {
+        modulesEl.innerHTML = `
+          <div style="padding: 14px; border: 1px solid var(--border); border-radius: 12px;">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+              <span style="width:10px;height:10px;border-radius:50%;background:${layerColor[m.layer] || layerColor.other};"></span>
+              <strong style="font-size:15px;">${escapeHtml(m.name)}</strong>
+              <span class="tag">${escapeHtml(m.layer)}</span>
+            </div>
+            <p>${escapeHtml(m.purpose || "")}</p>
+            ${
+              m.files && m.files.length
+                ? `<h3>Key files</h3><ul>${m.files
+                    .slice(0, 12)
+                    .map((f) => `<li><code>${escapeHtml(f)}</code></li>`)
+                    .join("")}</ul>`
+                : ""
+            }
+            <button id="back" style="margin-top:8px;background:transparent;border:1px solid var(--border);color:var(--muted);padding:6px 10px;border-radius:8px;cursor:pointer;">← back to modules</button>
+          </div>`;
+        document.getElementById("back").addEventListener("click", () => {
+          d3.selectAll(".node-circle").classed("selected", false);
+          linkSel.classed("highlight", false).classed("dim", false);
+          renderModuleList();
+        });
+      }
+
+      function escapeHtml(str) {
+        return String(str ?? "")
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#39;");
+      }
+
+      renderModuleList();
+    </script>
+  </body>
+</html>

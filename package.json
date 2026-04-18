@@ -1,0 +1,71 @@
+{
+  "name": "claudecog",
+  "version": "0.1.0",
+  "description": "A cognitive layer for code. Powered by Claude. ClaudeCog reads your repo as a living system, maps its architecture, explains it like a senior engineer, and surfaces real risks.",
+  "keywords": [
+    "claude",
+    "anthropic",
+    "ai",
+    "code-analysis",
+    "architecture",
+    "cognitive",
+    "developer-tools",
+    "cli",
+    "refactor",
+    "code-review"
+  ],
+  "homepage": "https://github.com/felipepreseti/claudecog#readme",
+  "bugs": {
+    "url": "https://github.com/felipepreseti/claudecog/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/felipepreseti/claudecog.git"
+  },
+  "license": "MIT",
+  "author": "Felipe Preseti <pre7fe@gmail.com>",
+  "type": "module",
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "claudecog": "dist/cli.js",
+    "cog": "dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "templates",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "start": "node dist/cli.js",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run build"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.30.1",
+    "boxen": "^8.0.1",
+    "chalk": "^5.3.0",
+    "commander": "^12.1.0",
+    "gradient-string": "^3.0.0",
+    "ignore": "^6.0.2",
+    "marked": "^14.1.3",
+    "marked-terminal": "^7.2.1",
+    "open": "^10.1.0",
+    "ora": "^8.1.1",
+    "prompts": "^2.4.2"
+  },
+  "devDependencies": {
+    "@types/gradient-string": "^1.1.6",
+    "@types/node": "^22.9.0",
+    "@types/prompts": "^2.4.9",
+    "tsup": "^8.3.5",
+    "typescript": "^5.6.3"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
