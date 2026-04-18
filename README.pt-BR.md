@@ -2,7 +2,7 @@
 
 > Uma camada cognitiva pra código. Feito com Claude.
 
-**Português** · [English](README.md) · [Español](README.es.md)
+**🇧🇷 Português** · [🇺🇸 English](README.md) · [🇪🇸 Español](README.es.md)
 
 [![npm](https://img.shields.io/npm/v/claudecog?color=7B68EE&label=npm)](https://www.npmjs.com/package/claudecog)
 [![License](https://img.shields.io/badge/License-MIT-FF6B35.svg)](LICENSE)

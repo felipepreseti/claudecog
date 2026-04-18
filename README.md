@@ -2,7 +2,7 @@
 
 > A cognitive layer for code. Powered by Claude.
 
-[Português](README.pt-BR.md) · **English** · [Español](README.es.md)
+[🇧🇷 Português](README.pt-BR.md) · **🇺🇸 English** · [🇪🇸 Español](README.es.md)
 
 [![npm](https://img.shields.io/npm/v/claudecog?color=7B68EE&label=npm)](https://www.npmjs.com/package/claudecog)
 [![License](https://img.shields.io/badge/License-MIT-FF6B35.svg)](LICENSE)
