@@ -23,6 +23,26 @@ npx claudecog map
 
 Na primeira vez abre um wizard de 30 segundos. Ele detecta o Claude Code automaticamente se você tiver instalado, senão pede uma API key da Anthropic.
 
+## Instalação fácil (pra quem nunca usou terminal)
+
+Nunca abriu um terminal? Escolhe seu sistema.
+
+**macOS / Linux** (cola no Terminal e aperta Enter):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/felipepreseti/claudecog/main/install.sh | bash
+```
+
+**Windows** (cola no PowerShell):
+
+```powershell
+iwr -useb https://raw.githubusercontent.com/felipepreseti/claudecog/main/install.ps1 | iex
+```
+
+**macOS, jeito clique-clique:** baixa o [`ClaudeCog.command`](https://raw.githubusercontent.com/felipepreseti/claudecog/main/ClaudeCog.command), arrasta pra Área de Trabalho, dá dois cliques. Ele instala o Node e o ClaudeCog se faltar, abre um seletor de pasta, e roda o wizard.
+
+Esses scripts instalam o Node.js se você não tiver, instalam o ClaudeCog global, e abrem o setup. Depois é só digitar `claudecog` em qualquer pasta de projeto.
+
 ## Comandos
 
 ### `claudecog map`

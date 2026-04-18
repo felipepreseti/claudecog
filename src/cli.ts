@@ -37,7 +37,6 @@ async function applyLang(flagLang?: string): Promise<void> {
 
 function printHelp(): void {
   const s = t();
-  console.log(ui.banner(VERSION));
   console.log(
     ui.box(
       [
@@ -60,6 +59,16 @@ function printHelp(): void {
   );
 }
 
+async function runDefault(): Promise<void> {
+  console.log(ui.banner(VERSION));
+  const cfg = await loadConfig();
+  if (!cfg) {
+    await runWizard();
+    return;
+  }
+  printHelp();
+}
+
 async function main(): Promise<void> {
   const langArgIndex = process.argv.findIndex(
     (a) => a === "--lang" || a === "-L",
@@ -78,7 +87,9 @@ async function main(): Promise<void> {
     .option("-L, --lang <code>", s.optLang)
     .showHelpAfterError(false)
     .configureHelp({ showGlobalOptions: true })
-    .action(() => printHelp());
+    .action(async () => {
+      await runDefault();
+    });
 
   program
     .command("map")
