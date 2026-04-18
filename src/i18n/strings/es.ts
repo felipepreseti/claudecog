@@ -52,7 +52,7 @@ export const es: Strings = {
   kvCreatedAt: "creadoEn",
   kvLanguage: "idioma",
 
-  wizardIntro1: "ClaudeCog necesita hablar con Claude en tu nombre.",
+  wizardIntro1: "necesita hablar con Claude en tu nombre.",
   wizardIntro2: "Este asistente tarda unos 30 segundos. Tu configuración se guardará en:",
   wizardTitle: "Configuración inicial",
   wizardLangPrompt: "Elige el idioma de la interfaz",

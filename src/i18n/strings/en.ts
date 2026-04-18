@@ -50,7 +50,7 @@ export const en = {
   kvCreatedAt: "createdAt",
   kvLanguage: "language",
 
-  wizardIntro1: "ClaudeCog needs to talk to Claude on your behalf.",
+  wizardIntro1: "needs to talk to Claude on your behalf.",
   wizardIntro2: "This wizard takes about 30 seconds. Your settings will be saved to:",
   wizardTitle: "First-time setup",
   wizardLangPrompt: "Choose your interface language",

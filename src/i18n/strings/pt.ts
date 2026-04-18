@@ -52,7 +52,7 @@ export const pt: Strings = {
   kvCreatedAt: "criadaEm",
   kvLanguage: "idioma",
 
-  wizardIntro1: "O ClaudeCog precisa falar com o Claude em seu nome.",
+  wizardIntro1: "precisa falar com o Claude em seu nome.",
   wizardIntro2: "Esse wizard leva uns 30 segundos. Suas configurações vão ficar em:",
   wizardTitle: "Setup inicial",
   wizardLangPrompt: "Escolhe o idioma da interface",
