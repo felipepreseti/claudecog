@@ -42,11 +42,11 @@ export async function renderGraphHtml(
 ): Promise<string> {
   const template = await fs.readFile(findTemplate(), "utf-8");
   return template
-    .replace("__TITLE__", escapeHtml(meta.repoName))
-    .replace("__REPO_NAME__", escapeHtml(meta.repoName))
-    .replace("__GENERATED_AT__", escapeHtml(meta.generatedAt))
-    .replace("__SUMMARY__", escapeHtml(data.summary))
-    .replace("__DATA__", JSON.stringify(data));
+    .replaceAll("__TITLE__", escapeHtml(meta.repoName))
+    .replaceAll("__REPO_NAME__", escapeHtml(meta.repoName))
+    .replaceAll("__GENERATED_AT__", escapeHtml(meta.generatedAt))
+    .replaceAll("__SUMMARY__", escapeHtml(data.summary))
+    .replaceAll("__DATA__", JSON.stringify(data).replaceAll("</script", "<\\/script"));
 }
 
 function escapeHtml(str: string): string {
