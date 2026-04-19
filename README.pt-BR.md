@@ -43,6 +43,22 @@ iwr -useb https://raw.githubusercontent.com/felipepreseti/claudecog/main/install
 
 Esses scripts instalam o Node.js se você não tiver, instalam o ClaudeCog global, e abrem o setup. Depois é só digitar `claudecog` em qualquer pasta de projeto.
 
+## Use dentro do Claude Desktop (um clique)
+
+Se você usa o [Claude Desktop](https://claude.ai/download), dá pra instalar o ClaudeCog como uma extensão nativa. Sem terminal, sem Node, sem npm.
+
+1. Baixa o [`claudecog.mcpb`](https://github.com/felipepreseti/claudecog/releases/latest/download/claudecog.mcpb) da última release.
+2. Abre o Claude Desktop, vai em **Configurações → Extensões**, clica em **Instalar Extensão** e seleciona o arquivo `.mcpb`.
+3. Cola sua chave da API da Anthropic quando pedir. Pronto.
+
+Aí você fala com o Claude normal:
+
+> "Mapeia essa pasta: `/Users/eu/projetos/meu-app`"
+> "Explica o `src/auth/middleware.ts` em `/Users/eu/projetos/meu-app`"
+> "Quais são os riscos reais em `/Users/eu/projetos/meu-app`?"
+
+A resposta vem dentro do chat, com módulos, walkthrough ou lista de riscos. E sempre com um link pro mapa 3D que você abre no navegador.
+
 ## Comandos
 
 ### `claudecog map`

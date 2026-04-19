@@ -4,37 +4,23 @@ import { makeClient } from "../core/claude.js";
 import { readFileSafe, scanRepo, summarizeRepo } from "../core/scanner.js";
 import { RepoCache } from "../core/cache.js";
 import { ui, severityChip } from "../core/ui.js";
-import { extractJsonBlock } from "../core/json.js";
 import { t } from "../i18n/index.js";
+import {
+  buildRisksPrompt,
+  normalizeRisks,
+  RISKS_SYSTEM,
+  type RawRisks,
+  type Risk,
+} from "../analyze/risks.js";
+import { extractJsonBlock } from "../core/json.js";
+
+export type { Risk, AnalyzeRisksResult } from "../analyze/risks.js";
+export { analyzeRisks } from "../analyze/risks.js";
 
 export interface RisksOptions {
   cwd: string;
   refresh: boolean;
   json: boolean;
-}
-
-const SYSTEM = `You are ClaudeCog, a senior staff engineer doing a focused risk review.
-You ignore stylistic nits. You surface things that will hurt this team in production, in 6 months, or during onboarding.
-You always respond with strict JSON wrapped in <json>...</json> tags.`;
-
-interface RawRisks {
-  risks?: Array<{
-    title?: string;
-    severity?: string;
-    category?: string;
-    file?: string;
-    why_it_matters?: string;
-    suggested_fix?: string;
-  }>;
-}
-
-interface Risk {
-  title: string;
-  severity: "low" | "medium" | "high" | "critical";
-  category: string;
-  file: string;
-  whyItMatters: string;
-  suggestedFix: string;
 }
 
 export async function runRisks(opts: RisksOptions): Promise<void> {
@@ -93,7 +79,7 @@ export async function runRisks(opts: RisksOptions): Promise<void> {
     const askSpinner = ui.spinner(s.msgReviewingWith(client.describe())).start();
     try {
       const prompt = buildRisksPrompt(summary, samples);
-      const text = await client.ask(prompt, { system: SYSTEM, maxTokens: 4096 });
+      const text = await client.ask(prompt, { system: RISKS_SYSTEM, maxTokens: 4096 });
       raw = extractJsonBlock(text) as RawRisks;
       await cache.write<RawRisks>("risks", cacheKey, raw);
       askSpinner.succeed(s.msgRiskReportReady);
@@ -116,102 +102,6 @@ export async function runRisks(opts: RisksOptions): Promise<void> {
     JSON.stringify({ generatedAt: new Date().toISOString(), risks }, null, 2),
   );
   console.log(ui.subtle(`\n  ${s.msgSavedJson(out)}\n`));
-}
-
-function buildRisksPrompt(
-  s: Awaited<ReturnType<typeof summarizeRepo>>,
-  samples: Array<{ relPath: string; content: string }>,
-): string {
-  const langInstr = t().promptOutputLang;
-  const langs = s.topLanguages
-    .map((l) => `- ${l.language}: ${l.files} files, ${l.loc} LOC`)
-    .join("\n");
-  const manifests = s.manifests
-    .map((m) => `### ${m.relPath}\n\`\`\`\n${m.preview}\n\`\`\``)
-    .join("\n\n");
-  const sampleBlocks = samples
-    .map((x) => `<sample path="${x.relPath}">\n${x.content}\n</sample>`)
-    .join("\n\n");
-
-  return `Review this repository as a senior engineer. Find the REAL risks. Skip lint-level nits.
-
-${langInstr}
-
-Look for:
-- security and secrets exposure
-- production reliability hazards (error handling, retries, blocking I/O on hot paths)
-- data integrity and consistency issues
-- silent coupling that will hurt future refactors
-- onboarding pain (missing docs, undocumented assumptions, magic constants)
-- dependency risks (abandoned, vulnerable, mis-pinned)
-- testing blind spots (NOT "you should add tests": say WHERE the lack of tests will bite)
-- performance traps that will appear under load
-- architectural debt that will compound
-
-<repository>
-<totals>files: ${s.totals.files}, LOC: ${s.totals.loc}</totals>
-
-<languages>
-${langs || "(none)"}
-</languages>
-
-<directory_tree>
-${s.tree}
-</directory_tree>
-
-<manifests>
-${manifests || "(none)"}
-</manifests>
-
-<source_samples>
-${sampleBlocks || "(none)"}
-</source_samples>
-</repository>
-
-Respond with JSON inside <json>...</json>:
-
-{
-  "risks": [
-    {
-      "title": string,
-      "severity": "low" | "medium" | "high" | "critical",
-      "category": "security" | "reliability" | "data" | "coupling" | "onboarding" | "dependencies" | "testing" | "performance" | "architecture",
-      "file": string,
-      "why_it_matters": string,
-      "suggested_fix": string
-    }
-  ]
-}
-
-Rules:
-- Return 5 to 12 risks. Quality over quantity.
-- title is 6 to 10 words, concrete.
-- file is a best-guess path (use one from the snapshot, or "" if cross-cutting).
-- why_it_matters is 1 to 3 sentences. Be specific. No platitudes.
-- suggested_fix is 1 to 3 sentences. Concrete next step.
-- No filler. No "consider adding more comments."
-- Order matters: list highest severity first.`;
-}
-
-function normalizeRisks(raw: RawRisks): Risk[] {
-  const list = raw.risks ?? [];
-  const allowedSev = new Set(["low", "medium", "high", "critical"]);
-  return list
-    .map((r) => ({
-      title: (r.title ?? "Untitled risk").trim(),
-      severity: (allowedSev.has((r.severity ?? "").toLowerCase())
-        ? (r.severity as string).toLowerCase()
-        : "medium") as Risk["severity"],
-      category: (r.category ?? "architecture").toLowerCase(),
-      file: (r.file ?? "").trim(),
-      whyItMatters: (r.why_it_matters ?? "").trim(),
-      suggestedFix: (r.suggested_fix ?? "").trim(),
-    }))
-    .sort((a, b) => sevWeight(b.severity) - sevWeight(a.severity));
-}
-
-function sevWeight(s: Risk["severity"]): number {
-  return { low: 1, medium: 2, high: 3, critical: 4 }[s];
 }
 
 function printRisks(risks: Risk[]): void {

@@ -1,0 +1,80 @@
+{
+  "manifest_version": "0.3",
+  "name": "claudecog",
+  "display_name": "ClaudeCog",
+  "version": "0.1.0",
+  "description": "A cognitive layer for code. ClaudeCog reads any local repo as a living system, maps its architecture in 3D, explains files like a senior engineer, and surfaces real risks.",
+  "long_description": "ClaudeCog turns chaotic codebases into something you can think on top of.\n\nPoint it at a folder on your machine and Claude will:\n\n- map the system into modules and show them in an interactive 3D walkthrough\n- explain any file like a thoughtful tech lead pairing with you\n- surface the risks that will actually hurt the team in production or onboarding\n\nThis extension talks to your own Anthropic account using the API key you paste below. Nothing leaves your machine except the file summaries sent to Claude.",
+  "author": {
+    "name": "Felipe Preseti",
+    "email": "pre7fe@gmail.com",
+    "url": "https://github.com/felipepreseti"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/felipepreseti/claudecog.git"
+  },
+  "homepage": "https://github.com/felipepreseti/claudecog",
+  "documentation": "https://github.com/felipepreseti/claudecog#readme",
+  "support": "https://github.com/felipepreseti/claudecog/issues",
+  "icon": "icon.png",
+  "license": "MIT",
+  "keywords": ["code-analysis", "architecture", "ai", "claude", "developer-tools"],
+  "server": {
+    "type": "node",
+    "entry_point": "server/server.js",
+    "mcp_config": {
+      "command": "node",
+      "args": ["${__dirname}/server/server.js"],
+      "env": {
+        "ANTHROPIC_API_KEY": "${user_config.api_key}",
+        "CLAUDECOG_MODEL": "${user_config.model}",
+        "CLAUDECOG_LANG": "${user_config.lang}"
+      }
+    }
+  },
+  "tools": [
+    {
+      "name": "cog_map",
+      "description": "Map a local repository as a system. Returns modules, relationships, summary, and a link to a 3D walkthrough."
+    },
+    {
+      "name": "cog_explain",
+      "description": "Explain a single file like a senior engineer pairing with you for ten minutes."
+    },
+    {
+      "name": "cog_risks",
+      "description": "Surface the real risks that will hurt this team in production, in 6 months, or during onboarding."
+    }
+  ],
+  "compatibility": {
+    "claude_desktop": ">=0.10.0",
+    "platforms": ["darwin", "win32", "linux"],
+    "runtimes": {
+      "node": ">=18.0.0"
+    }
+  },
+  "user_config": {
+    "api_key": {
+      "type": "string",
+      "title": "Anthropic API key",
+      "description": "Your personal Anthropic API key. Get one at https://console.anthropic.com/settings/keys",
+      "sensitive": true,
+      "required": true
+    },
+    "model": {
+      "type": "string",
+      "title": "Claude model",
+      "description": "Which Claude model ClaudeCog should use to think.",
+      "required": false,
+      "default": "claude-sonnet-4-5"
+    },
+    "lang": {
+      "type": "string",
+      "title": "Output language",
+      "description": "Language for ClaudeCog responses. Use 'en', 'pt' or 'es'.",
+      "required": false,
+      "default": "en"
+    }
+  }
+}

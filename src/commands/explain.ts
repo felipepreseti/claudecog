@@ -8,16 +8,16 @@ import { ui } from "../core/ui.js";
 import { renderMarkdown } from "../render/markdown.js";
 import { RepoCache } from "../core/cache.js";
 import { t } from "../i18n/index.js";
+import { buildExplainPrompt, EXPLAIN_SYSTEM } from "../analyze/explain.js";
+
+export type { AnalyzeExplainResult } from "../analyze/explain.js";
+export { analyzeExplain } from "../analyze/explain.js";
 
 export interface ExplainOptions {
   cwd: string;
   file?: string;
   save: boolean;
 }
-
-const SYSTEM = `You are ClaudeCog, a senior staff engineer reading a single file from a larger codebase.
-Your goal is not to repeat the code. Your goal is to make the reader UNDERSTAND it.
-You speak plainly, with strong opinions, like a thoughtful tech lead pairing with a junior.`;
 
 export async function runExplain(opts: ExplainOptions): Promise<void> {
   const cfg = await ensureConfig();
@@ -58,7 +58,7 @@ export async function runExplain(opts: ExplainOptions): Promise<void> {
   let answer: string;
   try {
     const prompt = buildExplainPrompt(relPath, code);
-    answer = await client.ask(prompt, { system: SYSTEM, maxTokens: 4096 });
+    answer = await client.ask(prompt, { system: EXPLAIN_SYSTEM, maxTokens: 4096 });
     askSpinner.succeed(s.msgGotExplanation);
   } catch (e) {
     askSpinner.fail(s.msgClaudeFailedExplain);
@@ -73,40 +73,6 @@ export async function runExplain(opts: ExplainOptions): Promise<void> {
     const out = await cache.writeText(`explain__${safe}.md`, answer);
     console.log(ui.subtle(`\n  ${s.msgSavedTo(out)}\n`));
   }
-}
-
-function buildExplainPrompt(relPath: string, code: string): string {
-  const ext = path.extname(relPath).slice(1) || "text";
-  const langInstr = t().promptExplainLang;
-  return `I will give you a single file from a larger codebase. Walk a smart developer through it as if you were pairing with them for ten minutes.
-
-${langInstr}
-
-Format your answer in Markdown with these sections, in this order:
-
-## What this file is for
-One paragraph. Plain language. What problem does it solve in the system?
-
-## Mental model
-Bullet list of the 3 to 6 key abstractions/objects/flows the reader should hold in their head before reading the code.
-
-## Walkthrough
-Go through the file in narrative order, quoting only the smallest snippets needed (use fenced code blocks). Skip boring parts. Focus on intent, not syntax.
-
-## Surprises and gotchas
-Things that would NOT be obvious from a quick read. Implicit contracts, hidden coupling, subtle bugs, performance traps, ordering requirements, etc.
-
-## How I would change it
-Two or three concrete improvements you would suggest if you were reviewing this in a PR. Be opinionated. No "consider adding tests" platitudes.
-
-Constraints:
-- Be concise. Aim for about 400 to 600 words total.
-- Don't restate the code; illuminate it.
-- If something is well written, say so briefly and move on.
-
-<file path="${relPath}" language="${ext}">
-${code}
-</file>`;
 }
 
 async function pickFileInteractively(cwd: string): Promise<string | undefined> {
