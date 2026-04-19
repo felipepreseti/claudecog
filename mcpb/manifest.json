@@ -2,9 +2,9 @@
   "manifest_version": "0.3",
   "name": "claudecog",
   "display_name": "ClaudeCog",
-  "version": "0.1.0",
-  "description": "A cognitive layer for code. ClaudeCog reads any local repo as a living system, maps its architecture in 3D, explains files like a senior engineer, and surfaces real risks.",
-  "long_description": "ClaudeCog turns chaotic codebases into something you can think on top of.\n\nPoint it at a folder on your machine and Claude will:\n\n- map the system into modules and show them in an interactive 3D walkthrough\n- explain any file like a thoughtful tech lead pairing with you\n- surface the risks that will actually hurt the team in production or onboarding\n\nThis extension talks to your own Anthropic account using the API key you paste below. Nothing leaves your machine except the file summaries sent to Claude.",
+  "version": "0.1.5",
+  "description": "Read any codebase like a senior engineer would. Maps the architecture in 3D, walks you through any file, and points out the risks that actually bite.",
+  "long_description": "A repo is rarely a system to anyone but the people who built it. ClaudeCog gives that view back to you.\n\nPoint Claude at any folder on your machine and ask:\n\n- **Map this folder.** Modules, what each one does, how they connect, walked through in 3D.\n- **Explain a file.** Like having a senior engineer next to you for ten minutes. No syntax recap, only intent.\n- **Find the real risks.** Security gaps, reliability hazards, silent coupling, dependency rot. No lint nits.\n\n## How you pay for Claude\n\nClaude Desktop does not let extensions use your Pro/Team subscription directly (the MCP 'sampling' feature is not implemented yet, see anthropics/claude-code#1785). So every extension that calls Claude needs its own access. Two options:\n\n**Free, if you have Claude Pro/Max already.** Open a terminal and run these three commands once:\n\n```\nnpm install -g @anthropic-ai/claude-code\nclaude login\n```\n\nThen leave the API key field below empty. ClaudeCog detects the local `claude` CLI automatically and rides on your existing subscription. Zero extra cost.\n\n**Paid, takes 30 seconds.** Get an API key at console.anthropic.com/settings/keys, add 5 USD of credit, paste the key in the field below. A typical analysis costs cents. The credit lasts months.\n\n## About the warning above\n\nClaude Desktop shows it for any extension that did not go through Anthropic's review. ClaudeCog only reads the folders you ask it to, never writes to your disk, and only sends short file summaries back to your own Anthropic account. The full source is open at github.com/felipepreseti/claudecog if you want to read it before installing.",
   "author": {
     "name": "Felipe Preseti",
     "email": "pre7fe@gmail.com",
@@ -19,7 +19,11 @@
   "support": "https://github.com/felipepreseti/claudecog/issues",
   "icon": "icon.png",
   "license": "MIT",
-  "keywords": ["code-analysis", "architecture", "ai", "claude", "developer-tools"],
+  "keywords": ["code analysis", "architecture", "code review", "developer tools", "claude"],
+  "localization": {
+    "resources": "mcpb-resources/${locale}.json",
+    "default_locale": "en-US"
+  },
   "server": {
     "type": "node",
     "entry_point": "server/server.js",
@@ -27,24 +31,22 @@
       "command": "node",
       "args": ["${__dirname}/server/server.js"],
       "env": {
-        "ANTHROPIC_API_KEY": "${user_config.api_key}",
-        "CLAUDECOG_MODEL": "${user_config.model}",
-        "CLAUDECOG_LANG": "${user_config.lang}"
+        "ANTHROPIC_API_KEY": "${user_config.api_key}"
       }
     }
   },
   "tools": [
     {
       "name": "cog_map",
-      "description": "Map a local repository as a system. Returns modules, relationships, summary, and a link to a 3D walkthrough."
+      "description": "Map a folder as a system. Returns the modules, how they relate, a one-paragraph summary, and a link to the 3D walkthrough."
     },
     {
       "name": "cog_explain",
-      "description": "Explain a single file like a senior engineer pairing with you for ten minutes."
+      "description": "Walk through a single file like a senior engineer pairing with you for ten minutes."
     },
     {
       "name": "cog_risks",
-      "description": "Surface the real risks that will hurt this team in production, in 6 months, or during onboarding."
+      "description": "Surface the risks that will actually hurt this team in production, in 6 months, or during onboarding. No lint nits."
     }
   ],
   "compatibility": {
@@ -57,24 +59,10 @@
   "user_config": {
     "api_key": {
       "type": "string",
-      "title": "Anthropic API key",
-      "description": "Your personal Anthropic API key. Get one at https://console.anthropic.com/settings/keys",
+      "title": "Anthropic API key (optional if Claude Code is installed)",
+      "description": "Paste a key from console.anthropic.com/settings/keys. Or leave empty if you've installed the Claude Code CLI to ride on your Claude Pro subscription for free.",
       "sensitive": true,
-      "required": true
-    },
-    "model": {
-      "type": "string",
-      "title": "Claude model",
-      "description": "Which Claude model ClaudeCog should use to think.",
-      "required": false,
-      "default": "claude-sonnet-4-5"
-    },
-    "lang": {
-      "type": "string",
-      "title": "Output language",
-      "description": "Language for ClaudeCog responses. Use 'en', 'pt' or 'es'.",
-      "required": false,
-      "default": "en"
+      "required": false
     }
   }
 }

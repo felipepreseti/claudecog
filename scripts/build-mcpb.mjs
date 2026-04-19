@@ -46,7 +46,7 @@ async function main() {
     stdio: "inherit",
   });
 
-  log("copying manifest, icon, template");
+  log("copying manifest, icon, template, locales");
   await copy(path.join(ROOT, "mcpb", "manifest.json"), path.join(BUILD, "manifest.json"));
   if (existsSync(path.join(ROOT, "mcpb", "icon.png"))) {
     await copy(path.join(ROOT, "mcpb", "icon.png"), path.join(BUILD, "icon.png"));
@@ -62,6 +62,17 @@ async function main() {
     path.join(ROOT, "mcpb", "server-package.json"),
     path.join(BUILD, "server", "package.json"),
   );
+
+  const localesSrc = path.join(ROOT, "mcpb", "mcpb-resources");
+  if (existsSync(localesSrc)) {
+    const localesDst = path.join(BUILD, "mcpb-resources");
+    await fs.mkdir(localesDst, { recursive: true });
+    for (const file of await fs.readdir(localesSrc)) {
+      if (file.endsWith(".json")) {
+        await copy(path.join(localesSrc, file), path.join(localesDst, file));
+      }
+    }
+  }
 
   log("installing runtime deps into mcpb-build/server/node_modules");
   execSync("npm install --omit=dev --no-package-lock --no-audit --no-fund --silent", {

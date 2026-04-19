@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import { en, type Strings } from "./strings/en.js";
 import { pt } from "./strings/pt.js";
 import { es } from "./strings/es.js";
@@ -41,16 +42,61 @@ export function normalizeLang(input: string | undefined | null): Lang | null {
 }
 
 export function detectSystemLang(): Lang {
-  const sources = [
+  const envSources = [
     process.env.CLAUDECOG_LANG,
     process.env.LC_ALL,
     process.env.LC_MESSAGES,
     process.env.LANG,
     process.env.LANGUAGE,
   ];
-  for (const src of sources) {
-    const guess = normalizeLang(src);
+  for (const src of envSources) {
+    const guess = normalizeLangStrict(src);
     if (guess) return guess;
   }
+  const osGuess = readOsLocale();
+  if (osGuess) return osGuess;
+  try {
+    const native = Intl.DateTimeFormat().resolvedOptions().locale;
+    const guess = normalizeLangStrict(native);
+    if (guess) return guess;
+  } catch {
+    /* noop */
+  }
   return "en";
+}
+
+/**
+ * Like normalizeLang, but ignores generic "C"/"POSIX" locales
+ * which carry no real language signal.
+ */
+function normalizeLangStrict(input: string | undefined | null): Lang | null {
+  if (!input) return null;
+  const trimmed = input.trim();
+  if (!trimmed) return null;
+  const lower = trimmed.toLowerCase();
+  if (lower === "c" || lower === "posix" || lower.startsWith("c.")) return null;
+  return normalizeLang(trimmed);
+}
+
+function readOsLocale(): Lang | null {
+  try {
+    if (process.platform === "darwin") {
+      const out = execFileSync("defaults", ["read", "-g", "AppleLocale"], {
+        encoding: "utf8",
+        timeout: 1000,
+      }).trim();
+      return normalizeLang(out);
+    }
+    if (process.platform === "win32") {
+      const out = execFileSync(
+        "powershell",
+        ["-NoProfile", "-Command", "(Get-Culture).Name"],
+        { encoding: "utf8", timeout: 1500 },
+      ).trim();
+      return normalizeLang(out);
+    }
+  } catch {
+    /* noop */
+  }
+  return null;
 }

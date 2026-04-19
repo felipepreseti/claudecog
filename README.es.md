@@ -1,6 +1,6 @@
 # ClaudeCog
 
-> Una capa cognitiva para tu código. Hecho con Claude.
+> Lee cualquier codebase como lo haría un ingeniero senior. Mapea la arquitectura en 3D, te guía por cualquier archivo y muestra los riesgos que de verdad muerden.
 
 [🇧🇷 Português](README.pt-BR.md) · [🇺🇸 English](README.md) · **🇪🇸 Español**
 

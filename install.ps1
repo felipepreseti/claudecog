@@ -19,7 +19,7 @@ function Banner {
   Write-Host " | |___ | || (_| || |_| | (_| ||  __/___) | (_) || (_| |"    -ForegroundColor DarkYellow
   Write-Host "  \____||_| \__,_| \__,_|\__,_| \___|____/ \___/  \__, |"    -ForegroundColor DarkYellow
   Write-Host "                                                  |___/ "    -ForegroundColor DarkYellow
-  Write-Host ("  " + (T "a cognitive layer for code  -  powered by Claude" "uma camada cognitiva para codigo  -  feito com Claude")) -ForegroundColor DarkGray
+  Write-Host ("  " + (T "read any codebase like a senior engineer would" "le qualquer codebase como um senior leria")) -ForegroundColor DarkGray
   Write-Host ""
 }
 

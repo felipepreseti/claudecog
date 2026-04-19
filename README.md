@@ -1,6 +1,6 @@
 # ClaudeCog
 
-> A cognitive layer for code. Powered by Claude.
+> Read any codebase like a senior engineer would. Maps the architecture in 3D, walks you through any file, and points out the risks that actually bite.
 
 [🇧🇷 Português](README.pt-BR.md) · **🇺🇸 English** · [🇪🇸 Español](README.es.md)
 

@@ -1,11 +1,11 @@
 import type { Strings } from "./en.js";
 
 export const pt: Strings = {
-  brandTagline: "uma camada cognitiva para código",
-  poweredBy: "feito com Claude",
+  brandTagline: "lê qualquer codebase como um sênior leria",
+  poweredBy: "",
   langName: "Português (Brasil)",
 
-  cliDescription: "Uma camada cognitiva para código. Feito com Claude.",
+  cliDescription: "Lê qualquer codebase como um sênior leria. Faz o mapa da arquitetura em 3D, te leva por qualquer arquivo e mostra os riscos que de verdade machucam.",
   helpHeadline: "ClaudeCog lê seu repositório como um sistema, não como uma pilha de arquivos.",
   helpCommandsTitle: "Comandos",
   helpCmdMap: "modela o sistema e abre o grafo interativo",

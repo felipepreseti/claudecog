@@ -31,7 +31,7 @@ banner() {
   printf " | |___ | || (_| || |_| | (_| ||  __/___) | (_) || (_| |\n"
   printf "  \\____||_| \\__,_| \\__,_|\\__,_| \\___|____/ \\___/  \\__, |\n"
   printf "                                                  |___/ ${RESET}\n"
-  printf "${DIM}  $(t "a cognitive layer for code  -  powered by Claude" "uma camada cognitiva para codigo  -  feito com Claude")${RESET}\n\n"
+  printf "${DIM}  $(t "read any codebase like a senior engineer would" "le qualquer codebase como um senior leria")${RESET}\n\n"
 }
 
 step() {

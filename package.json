@@ -1,7 +1,7 @@
 {
   "name": "claudecog",
   "version": "0.1.0",
-  "description": "A cognitive layer for code. Powered by Claude. ClaudeCog reads your repo as a living system, maps its architecture, explains it like a senior engineer, and surfaces real risks.",
+  "description": "Read any codebase like a senior engineer would. Maps the architecture in 3D, walks you through any file, and points out the risks that actually bite.",
   "keywords": [
     "claude",
     "anthropic",

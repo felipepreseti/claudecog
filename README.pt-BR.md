@@ -1,6 +1,6 @@
 # ClaudeCog
 
-> Uma camada cognitiva pra código. Feito com Claude.
+> Lê qualquer codebase como um sênior leria. Faz o mapa da arquitetura em 3D, te leva por qualquer arquivo e mostra os riscos que de verdade machucam.
 
 **🇧🇷 Português** · [🇺🇸 English](README.md) · [🇪🇸 Español](README.es.md)
 

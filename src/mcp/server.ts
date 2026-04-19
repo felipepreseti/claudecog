@@ -86,7 +86,7 @@ async function main(): Promise<void> {
         ``,
         `## Modules`,
         ...result.graph.modules.map(
-          (m) => `- **${m.name}** *(${m.layer})* — ${m.purpose}`,
+          (m) => `- **${m.name}** *(${m.layer})*: ${m.purpose}`,
         ),
         ``,
         `## Open the 3D walkthrough`,

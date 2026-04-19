@@ -1,9 +1,9 @@
 export const en = {
-  brandTagline: "a cognitive layer for code",
-  poweredBy: "powered by Claude",
+  brandTagline: "read any codebase like a senior engineer would",
+  poweredBy: "",
   langName: "English",
 
-  cliDescription: "A cognitive layer for code. Powered by Claude.",
+  cliDescription: "Read any codebase like a senior engineer would. Maps the architecture in 3D, walks you through any file, and points out the risks that actually bite.",
   helpHeadline: "ClaudeCog reads your repo as a system, not a pile of files.",
   helpCommandsTitle: "Commands",
   helpCmdMap: "model the system and open the interactive graph",

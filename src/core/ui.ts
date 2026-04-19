@@ -27,9 +27,7 @@ export const ui = {
     ].join("\n");
 
     const s = t();
-    const subtitle = subtle(
-      `  v${version}  ·  ${s.brandTagline}  ·  ${s.poweredBy}`,
-    );
+    const subtitle = subtle(`  v${version}  ·  ${s.brandTagline}`);
     return `\n${cogGradient.multiline(art)}\n${subtitle}\n`;
   },
 

@@ -1,0 +1,25 @@
+{
+  "description": "Lee cualquier codebase como lo haría un ingeniero senior. Mapea la arquitectura en 3D, te guía por cualquier archivo y muestra los riesgos que de verdad muerden.",
+  "long_description": "Un repositorio rara vez es un sistema para quien no lo construyó. ClaudeCog te devuelve esa visión.\n\nApúntale a Claude cualquier carpeta de tu máquina y pídele:\n\n- **Mapea esta carpeta.** Módulos, qué hace cada uno, cómo se conectan, en un paseo 3D.\n- **Explica este archivo.** Como tener a un senior a tu lado por diez minutos. Sin repetir sintaxis, foco en intención.\n- **Encuentra los riesgos reales.** Agujeros de seguridad, problemas de confiabilidad, acoplamiento silencioso, dependencias podridas. Sin coseo de lint.\n\n## Cómo pagas Claude\n\nClaude Desktop todavía no deja que las extensiones usen tu suscripción Pro/Team directamente (la característica 'sampling' de MCP no está implementada, ver anthropics/claude-code#1785). Así que cada extensión que llama a Claude necesita su propio acceso. Dos opciones:\n\n**Gratis, si ya tienes Claude Pro/Max.** Abre una terminal y ejecuta estos tres comandos una vez:\n\n```\nnpm install -g @anthropic-ai/claude-code\nclaude login\n```\n\nLuego deja el campo de la clave API de abajo vacío. ClaudeCog detecta solo el `claude` CLI local y usa tu suscripción. Cero costo extra.\n\n**De pago, toma 30 segundos.** Consigue una clave API en console.anthropic.com/settings/keys, añade 5 USD de crédito, pega la clave en el campo de abajo. Un análisis típico cuesta centavos. El crédito dura meses.\n\n## Sobre el aviso de arriba\n\nClaude Desktop lo muestra para cualquier extensión que todavía no ha pasado por la revisión de Anthropic. ClaudeCog solo lee las carpetas que le pidas, nunca escribe en tu disco, y solo manda resúmenes cortos de los archivos a tu propia cuenta de Anthropic. Todo el código es abierto en github.com/felipepreseti/claudecog si quieres mirarlo antes de instalar.",
+  "keywords": ["análisis de código", "arquitectura", "code review", "herramienta dev", "claude"],
+  "tools": [
+    {
+      "name": "cog_map",
+      "description": "Mapea una carpeta como sistema. Devuelve los módulos, cómo se relacionan, un resumen de un párrafo y un enlace al paseo en 3D."
+    },
+    {
+      "name": "cog_explain",
+      "description": "Te lleva por un archivo como un senior pareando diez minutos contigo."
+    },
+    {
+      "name": "cog_risks",
+      "description": "Muestra los riesgos reales que van a fastidiar al equipo en producción, en 6 meses, o en el onboarding. Sin coseo de lint."
+    }
+  ],
+  "user_config": {
+    "api_key": {
+      "title": "Clave de la API de Anthropic (opcional si Claude Code está instalado)",
+      "description": "Pega una clave de console.anthropic.com/settings/keys. O déjala vacía si instalaste Claude Code CLI para usar tu suscripción Claude Pro gratis."
+    }
+  }
+}
